@@ -83,7 +83,7 @@ Una vez levantado el entorno con Docker Compose:
 
 ## Puesta en Marcha
 
-1. Configurar las variables de entorno en el archivo `.env`.  
+1. Copiar el archivo .env.example a uno nuevo llamado .env y configurar las credenciales. 
 2. Levantar los servicios:
 
         docker compose up -d
