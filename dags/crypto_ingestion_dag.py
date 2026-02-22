@@ -13,7 +13,7 @@ default_args = {
 with DAG(
     'market_pulse_ingestion',
     default_args=default_args,
-    description='Crypto price ingestion pipeline',
+    description='Crypto ETL pipeline',
     schedule_interval='@hourly',
     catchup=False
 ) as dag:
@@ -28,5 +28,9 @@ with DAG(
         bash_command='python3 /opt/airflow/scripts/api_to_db.py'
     )
 
-    task_check_api >> task_run_ingestor
+    task_transform = BashOperator(
+        task_id='transform_data',
+        bash_command='python3 /opt/airflow/scripts/transform_data.py'
+    )
 
+    task_check_api >> task_run_ingestor >> task_transform

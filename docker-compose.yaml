@@ -11,18 +11,31 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  ingestor:
-    build: .
-    container_name: market_pulse_ingestor
+  airflow:
+    image: apache/airflow:2.7.1-python3.11
+    container_name: market_pulse_airflow
+    user: "${AIRFLOW_UID:-1000}:0"
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://engineer:password123@postgres/market_pulse
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - _PIP_ADDITIONAL_REQUIREMENTS=requests psycopg2-binary python-dotenv
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./scripts:/opt/airflow/scripts
+    command: standalone
+    ports:
+      - "8080:8080"
     depends_on:
       - postgres
 
-    environment:
-      - DB_HOST=postgres
-      - DB_NAME=market_pulse
-      - DB_USER=engineer
-      - DB_PASSWORD=password123
-      - DB_PORT=5432
+  metabase:
+    image: metabase/metabase:latest
+    container_name: market_pulse_dashboard
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
 
 volumes:
   postgres_data:
