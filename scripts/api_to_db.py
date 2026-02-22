@@ -1,28 +1,61 @@
+import os
+import time
 import requests
 import psycopg2
-url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd'
+from dotenv import load_dotenv
 
-dato = requests.get(url).json()
+load_dotenv()
 
-precio_btc = dato['bitcoin']['usd']
+def run_ingestion():
+    # Variables de entorno
+    db_host = os.getenv("DB_HOST", "127.0.0.1")
+    db_name = os.getenv("DB_NAME", "market_pulse")
+    db_user = os.getenv("DB_USER", "engineer")
+    db_pass = os.getenv("DB_PASSWORD", "password123")
+    db_port = os.getenv("DB_PORT", "5432")
 
-conn = psycopg2.connect(
-	host = 'localhost',
-	database = 'market_pulse',
-	user = 'engineer',
-	password = 'password123',
-	port = '5432'
-	)
+    try:
+        conn = psycopg2.connect(
+            host=db_host,
+            database=db_name,
+            user=db_user,
+            password=db_pass,
+            port=db_port
+        )
+        cur = conn.cursor()
+        print(f"Connected to database at {db_host}")
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+        return
 
-cur = conn.cursor()
+    monedas = ["bitcoin", "ethereum", "solana"]
 
-sql = 'INSERT INTO precios_crypto (moneda, precio) VALUES (%s, %s)'
-valores = ('bitcoin', precio_btc)
+    for moneda in monedas:
+        try:
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={moneda}&vs_currencies=usd"
+            response = requests.get(url)
+            data = response.json()
 
-cur.execute(sql, valores)
-conn.commit()
+            if moneda in data:
+                precio = data[moneda]['usd']
+                
+                cur.execute(
+                    "INSERT INTO precios_crypto (moneda, precio) VALUES (%s, %s)",
+                    (moneda, precio)
+                )
+                print(f"Inserted {moneda}: {precio}")
+            else:
+                print(f"No data found for {moneda}")
+            
+            time.sleep(2)
 
-cur.close()
-conn.close()
+        except Exception as e:
+            print(f"Error processing {moneda}: {e}")
 
-print(f'Exito. Guardado bitcoin a: {precio_btc}')
+    conn.commit()
+    cur.close()
+    conn.close()
+    print("Ingestion process completed")
+
+if __name__ == "__main__":
+    run_ingestion()

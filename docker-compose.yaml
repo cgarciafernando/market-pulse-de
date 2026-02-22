@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
@@ -12,6 +10,19 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+
+  ingestor:
+    build: .
+    container_name: market_pulse_ingestor
+    depends_on:
+      - postgres
+
+    environment:
+      - DB_HOST=postgres
+      - DB_NAME=market_pulse
+      - DB_USER=engineer
+      - DB_PASSWORD=password123
+      - DB_PORT=5432
 
 volumes:
   postgres_data:
